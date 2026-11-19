@@ -1,0 +1,17 @@
+# Include the CV microservice
+# The -r line tells pip to read app/requirements.txt too. That file explains
+# the packages for the API, the document readers and local OCR.
+-r app/requirements.txt
+
+# Upload CVs from the desktop tester
+# Tkinter supplies the file picker in test_input.py. httpx sends each selected
+# CV to the local POST /cv/raw endpoint and reads file_name and data from its
+# JSON response.
+httpx==0.28.1
+
+# Append test results to Excel
+# openpyxl lets workbook.py create output.xlsx with the "File name" and "Data"
+# columns or reopen it to append new rows. filelock lets one tester write at
+# a time so overlapping saves cannot overwrite each other's rows.
+openpyxl==3.1.5
+filelock==4.2.10

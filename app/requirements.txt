@@ -1,0 +1,39 @@
+# Receive CV uploads and return raw text
+# FastAPI defines POST /cv/raw and returns the filename and text as JSON.
+# Uvicorn runs the HTTP server that listens for requests. python-multipart
+# decodes the upload's file field so the reader can access the original bytes.
+fastapi==0.162.2
+uvicorn==0.54.0
+python-multipart==0.0.33
+
+# Read Word documents
+# python-docx (imported as docx) opens .docx files so the reader can collect
+# text from paragraphs, tables, headers and footers, along with hyperlink URLs.
+# For older .doc files, the reader calls the local Antiword executable.
+python-docx==1.2.0
+
+# Read PDF text and render scanned pages
+# pypdf retrieves link destinations and filled form fields that may be stored
+# separately from visible text. pdfplumber extracts selectable text page by
+# page. When a page has content but yields no text, pypdfium2 renders that
+# page as an image for OCR.
+pypdf==6.21.4
+pdfplumber==0.11.10
+pypdfium2==5.15.2
+
+# Recognize text with local OCR models
+# PaddleOCR takes an image and returns recognized lines of text. PaddleX
+# connects the stages that orient the page, locate the text and read each
+# line. PaddlePaddle runs those models on the CPU using the weights that
+# install.py stores in app/models/OCR/.
+paddlepaddle==3.3.1
+paddleocr==3.7.0
+paddlex==3.7.2
+
+# Prepare image pixels for OCR
+# Pillow (imported as PIL) opens images, applies rotation from photo metadata
+# and reads multipage TIFFs one frame at a time. NumPy converts the resulting
+# pixels into an array with the blue, green and red channel order that
+# PaddleOCR expects.
+numpy==2.3.5
+Pillow==13.0.0
