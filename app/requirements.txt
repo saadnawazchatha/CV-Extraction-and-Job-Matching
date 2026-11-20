@@ -1,5 +1,5 @@
-# Receive CV uploads and return raw text
-# FastAPI defines POST /cv/raw and returns the filename and text as JSON.
+# Receive CV uploads and return raw text plus structured information
+# FastAPI defines POST /cv/raw and returns the filename, text and extracted CV object.
 # Uvicorn runs the HTTP server that listens for requests. python-multipart
 # decodes the upload's file field so the reader can access the original bytes.
 fastapi==0.162.2
@@ -39,3 +39,12 @@ paddlex==3.7.2
 # PaddleOCR expects.
 numpy==2.3.5
 Pillow==13.0.0
+
+# Extract structured information from raw CV text
+# HTTPX talks to the project's Ollama server on this computer for model setup
+# and inference. Pydantic defines the full JSON schema given to Gemma 4 E4B and checks
+# each response before returning it. FileLock keeps two installers from writing
+# the same model store at once. Ollama itself is a separate application.
+httpx==0.28.1
+pydantic==2.14.3
+filelock==4.2.10

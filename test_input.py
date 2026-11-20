@@ -1,3 +1,4 @@
+import json
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import tkinter as tk
@@ -12,11 +13,12 @@ API_URL = "http://127.0.0.1:8000/cv/raw"
 
 
 def process_files(paths, cache):
-    """Send each CV to the local API, then save the returned text."""
+    """Keep each complete response until its row is safely saved."""
     failed, reports = [], []
-    with httpx.Client(timeout=httpx.Timeout(300, connect=5), trust_env=False) as client:
+    # CPU extraction can take several minutes. The GUI keeps polling its worker.
+    with httpx.Client(timeout=httpx.Timeout(30, connect=5, read=None), trust_env=False) as client:
         for path in paths:
-            text = ""
+            preview = ""
             try:
                 if path not in cache:
                     with path.open("rb") as source:
@@ -24,21 +26,25 @@ def process_files(paths, cache):
                     if response.is_error:
                         raise ValueError(response.json()["detail"])
                     result = response.json()
-                    cache[path] = (result["file_name"], result["data"])
-                name, text = cache[path]
-                append_cv(name, text)
+                    if not isinstance(result.get("extracted_data"), dict):
+                        raise ValueError("The API response is missing extracted_data. Restart the updated API and retry.")
+                    extracted_json = json.dumps(result["extracted_data"], ensure_ascii=False, indent=2)
+                    cache[path] = (result["file_name"], result["data"], extracted_json)
+                name, text, extracted_json = cache[path]
+                preview = f"Raw text\n{text}\n\nExtracted JSON\n{extracted_json}"
+                append_cv(name, text, extracted_json=extracted_json)
                 del cache[path]
-                reports.append(f"{name}\n{text}")
+                reports.append(f"{name}\n{preview}")
             except Exception as error:
                 failed.append(path)
-                message = "Start the local API and retry." if isinstance(error, httpx.RequestError) else str(error)
-                reports.append(f"{path.name}\n{message}\n{text}".rstrip())
+                message = "Start the local API and retry." if isinstance(error, httpx.ConnectError) else str(error)
+                reports.append(f"{path.name}\n{message}\n{preview}".rstrip())
     return failed, "\n\n".join(reports)
 
 
 def main():
     window = tk.Tk()
-    window.title("CV text reader")
+    window.title("CV extraction tester")
     pending, cache = [], {}
     worker = ThreadPoolExecutor(max_workers=1)
 
@@ -61,7 +67,7 @@ def main():
     def process():
         add_button.configure(state="disabled")
         process_button.configure(state="disabled")
-        status.set("Reading CVs...")
+        status.set("Reading CVs and extracting information...")
         job = worker.submit(process_files, pending.copy(), cache)
         finish(job)
 

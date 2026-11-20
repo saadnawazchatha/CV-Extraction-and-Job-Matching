@@ -5,14 +5,17 @@
 
 A Python-based microservice developed to overcome the limitations of traditional Regex-based CV extraction.
 
-The project aims to extract structured candidate information from CVs and eventually use AI-based techniques to match candidates against job descriptions.
+The project extracts raw text from CVs, processes it using an AI-based information extraction model, and generates structured candidate information in JSON format.
+
+The long-term goal is to match candidates against job descriptions using AI-based techniques.
 
 ## Project Workflow
 
 1. **Document Upload:** Accept CVs in PDF, Word, and image formats.
 2. **Raw Text Extraction:** Extract text using dedicated document parsers and OCR where required.
-3. **Information Extraction (Next Focus):** Convert raw text into useful candidate information in JSON format.
-4. **AI-Based Job Matching (Future):** Match extracted candidate information against job descriptions.
+3. **AI Information Extraction:** Process raw text using an AI model to identify relevant candidate information.
+4. **JSON Response:** Generate structured candidate information in a standardized JSON format.
+5. **AI-Based Job Matching (Future):** Match candidate information against job descriptions.
 
 ---
 
@@ -30,27 +33,21 @@ The project aims to extract structured candidate information from CVs and eventu
 | Scanned PDF processing using OCR | ✅ Completed |
 | OCR for images embedded in Word documents | ✅ Completed |
 | Return uploaded filename and extracted raw text | ✅ Completed |
+| Improve extraction accuracy and text structure | ✅ Completed |
 
-### Latest Improvements — November 20, 2026
-
-The existing extraction pipeline has been refined to provide:
-
-- **Improved accuracy** across PDF, Word, and image-based CVs.
-- **Better text structure** and organization of extracted content.
-- **Cleaner, more readable output** for downstream AI processing.
-- **Completed OCR support** for images embedded in Word documents.
-
-These improvements prepare the extracted raw text for structured information extraction.
+The extraction pipeline has been refined to provide more accurate, structured, and readable raw text for downstream AI processing.
 
 ---
 
 ### Phase 2 — Structured Information Extraction
 
-**Status: 🔄 Next Focus**
+**Status: 🔄 Implemented — Under Testing**
 
-The next step is to develop an AI-based extraction system that converts raw CV text into useful, structured candidate information.
+An AI-based information extraction model has been integrated into the processing pipeline.
 
-The target information includes:
+Once a CV has been parsed, the raw text is passed to the AI model, which extracts relevant candidate information and generates a structured JSON response.
+
+The extracted information includes:
 
 - **Personal Details:** Name, email, phone, and location.
 - **Professional Profiles:** LinkedIn and GitHub.
@@ -58,11 +55,9 @@ The target information includes:
 - **Work Experience:** Job title, company, employment period, and highlights.
 - **Education:** Degree, institution, and graduation year.
 
-#### Desired JSON Output
+#### Desired JSON Response
 
-The following is an example of the expected response once structured information extraction is implemented.
-
-**Note:** This is the planned output format, not the current microservice response.
+Example of the expected output using fictional candidate information:
 
 ```json
 {
@@ -72,20 +67,14 @@ The following is an example of the expected response once structured information
   "location": "New York, NY",
   "linkedin": "https://www.linkedin.com/in/johndoe",
   "github": null,
-  "summary": "Software Developer experienced in designing, developing, and maintaining software applications.",
+  "summary": "Software Developer experienced in building and maintaining software applications.",
   "skills": [
     "Python",
     "Java",
-    "Software Development",
-    "Unit Testing",
-    "Code Optimization",
-    "Debugging",
     "SQL",
-    "HTML",
-    "CSS",
     "JavaScript",
-    "Git",
-    "REST APIs"
+    "REST APIs",
+    "Git"
   ],
   "experience": [
     {
@@ -94,8 +83,7 @@ The following is an example of the expected response once structured information
       "period": "Jan 2022 - Present",
       "highlights": [
         "Developed and maintained software applications.",
-        "Improved application performance through code optimization.",
-        "Collaborated with team members to implement and test new features."
+        "Improved application performance through code optimization."
       ]
     }
   ],
@@ -109,7 +97,17 @@ The following is an example of the expected response once structured information
 }
 ```
 
-Missing information will be represented using `null` or empty arrays rather than fabricated values.
+#### Current Testing
+
+The AI extraction model is currently undergoing testing to ensure that:
+
+- Extracted information accurately matches the original CV.
+- JSON responses follow the desired structure consistently.
+- Missing information is represented using `null` or empty arrays.
+- Incorrect or fabricated information is minimized.
+- Different CV layouts produce reliable extraction results.
+
+**The model is implemented, but its extraction accuracy and JSON response quality are still being evaluated and refined.**
 
 ---
 
@@ -117,9 +115,14 @@ Missing information will be represented using `null` or empty arrays rather than
 
 **Status: ⏳ Future Development**
 
-Use extracted candidate information to match CVs against job descriptions and identify the most relevant candidates.
+Once the information extraction model has been tested and finalized, the next phase will focus on:
 
-The matching, scoring, and ranking methodology will be determined during this phase.
+- Processing job descriptions.
+- Comparing candidate profiles against job requirements.
+- Implementing AI-based candidate matching.
+- Developing candidate relevance scoring and ranking.
+
+The matching methodology will be determined during this phase.
 
 ---
 
@@ -127,9 +130,11 @@ The matching, scoring, and ranking methodology will be determined during this ph
 
 **Last Updated:** November 20, 2026
 
-✅ **Completed:** Raw text extraction across all targeted document formats, including OCR support and extraction quality improvements.
+✅ **Completed:** Raw text extraction from PDF, Word, and image-based CVs, including OCR processing and extraction quality improvements.
 
-🔄 **Next Focus:** Converting extracted raw text into useful, structured candidate information using AI-based methods.
+🔄 **Under Testing:** AI-based information extraction model that converts raw CV text into structured candidate JSON responses.
+
+⏳ **Next Focus:** Validate and improve the AI model's extraction accuracy and consistency before proceeding to job matching.
 
 ⏳ **Future:** AI-based CV matching against job descriptions.
 

@@ -14,14 +14,17 @@ __pycache__/
 .pytest_cache/
 
 # ==========================================
-# OCR Model Files
+# Downloaded Model Files
 # ==========================================
-/app/models/OCR/
+/app/models/
 
 # ==========================================
 # PDF Files in Project Root
 # ==========================================
 /*.pdf
+
+# Local sample CVs
+/tests/
 
 # ==========================================
 # Environment Variables / Secrets
