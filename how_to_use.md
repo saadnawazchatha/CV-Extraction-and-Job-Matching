@@ -21,7 +21,11 @@ Start the API in the first terminal.
 
 Upload a Word file (`.doc`, `.docx`), PDF, or image (JPEG, PNG, TIFF, BMP, WebP) to `POST /cv/raw` in the multipart field `file`. The response contains `file_name` and `data` (raw text). Uploads support up to 32 MiB per file and 50 megapixels per image frame.
 
-Images go through OCR. For PDFs, pdfplumber reads each page first. A page with visible content and no extractable text is rendered and sent to OCR. The response keeps the original page order. Word uses python-docx for `.docx` and Antiword for `.doc`. Git for Windows supplies Antiword on this computer.
+Images go through OCR. For PDFs, pdfplumber reads each page first. A page with visible content and no extractable text is rendered and sent to OCR. The response keeps the original page order.
+
+Upload a Word CV as usual, even if the whole CV is a pasted scan. In `.docx`, python-docx reads the typed text and locates embedded pictures, including pictures in tables, headers and footers. In Word 97–2003 `.doc`, Antiword reads the typed text and olefile opens the streams that hold embedded pictures. Git for Windows supplies Antiword on this computer. The service sends embedded raster pictures to the existing local OCR engine. Pictures linked from a website are skipped.
+
+OCR text appears at the picture's position when available. For older `.doc` files, picture text that Antiword cannot position is appended to the response.
 
 Start the optional Tkinter tester in a second terminal in the same folder.
 

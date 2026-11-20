@@ -9,8 +9,10 @@ python-multipart==0.0.33
 # Read Word documents
 # python-docx (imported as docx) opens .docx files so the reader can collect
 # text from paragraphs, tables, headers and footers, along with hyperlink URLs.
-# For older .doc files, the reader calls the local Antiword executable.
+# For older .doc files, Antiword reads typed text and olefile opens the binary
+# Word streams so the reader can locate embedded pictures for the same local OCR.
 python-docx==1.2.0
+olefile==0.47
 
 # Read PDF text and render scanned pages
 # pypdf retrieves link destinations and filled form fields that may be stored

@@ -1,3 +1,4 @@
+from contextlib import ExitStack
 from functools import cache
 from io import BytesIO
 import os
@@ -52,13 +53,14 @@ def _engine():
 
 
 def recognize(image: Image.Image) -> str:
-    """Return the lines PaddleOCR reads from one page, in reading order."""
     with _engine_lock:
-        engine = _engine()
         # Paddle expects BGR pixels. White also preserves dark text in transparent PNGs.
         with image.convert("RGBA") as rgba, Image.new("RGB", image.size, "white") as rgb:
             rgb.paste(rgba, mask=rgba.getchannel("A"))
+            if all(low == high for low, high in rgb.getextrema()):
+                return ""
             pixels = np.asarray(rgb)[:, :, ::-1].copy()
+        engine = _engine()
         try:
             page = engine.predict(pixels)[0]
             return "\n".join(line.strip() for line in page["rec_texts"] if line.strip())
@@ -66,14 +68,24 @@ def recognize(image: Image.Image) -> str:
             raise OCRUnavailable("The local OCR engine could not read this image.") from error
 
 
-def read_image(content: bytes) -> str:
+def read_image(content: bytes, *, formats: tuple[str, ...] = tuple(IMAGE_FORMATS),
+               crop: tuple[float, float, float, float] | None = None) -> str:
     try:
-        with Image.open(BytesIO(content), formats=list(IMAGE_FORMATS)) as source:
+        with Image.open(BytesIO(content), formats=formats) as source:
             pages = []
             for frame in ImageSequence.Iterator(source):
                 if frame.width * frame.height > 50_000_000:
                     raise ValueError("Each image page must be 50 megapixels or smaller.")
-                with ImageOps.exif_transpose(frame) as upright:
+                with ExitStack() as images:
+                    upright = images.enter_context(ImageOps.exif_transpose(frame))
+                    if crop:
+                        left, top, right, bottom = (min(1, max(0, value)) for value in crop)
+                        width, height = upright.size
+                        box = (round(width * left), round(height * top),
+                               round(width * (1 - right)), round(height * (1 - bottom)))
+                        if box[0] >= box[2] or box[1] >= box[3]:
+                            continue
+                        upright = images.enter_context(upright.crop(box))
                     upright.thumbnail((3200, 3200))
                     pages.append(recognize(upright))
             return "\n\n".join(filter(None, pages))
