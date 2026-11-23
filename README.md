@@ -7,7 +7,7 @@ A Python-based microservice developed to overcome the limitations of traditional
 
 The project extracts raw text from CVs, processes it using an AI-based information extraction model, and generates structured candidate information in JSON format.
 
-The long-term goal is to match candidates against job descriptions using AI-based techniques.
+The system also includes an initial CV ranking implementation that evaluates candidate relevance against job descriptions.
 
 ## Project Workflow
 
@@ -15,7 +15,7 @@ The long-term goal is to match candidates against job descriptions using AI-base
 2. **Raw Text Extraction:** Extract text using dedicated document parsers and OCR where required.
 3. **AI Information Extraction:** Process raw text using an AI model to identify relevant candidate information.
 4. **JSON Response:** Generate structured candidate information in a standardized JSON format.
-5. **AI-Based Job Matching (Future):** Match candidate information against job descriptions.
+5. **AI-Based Job Matching:** Compare candidate information against job descriptions to evaluate and rank CVs by relevance.
 
 ---
 
@@ -99,47 +99,64 @@ Example of the expected output using fictional candidate information:
 
 #### Current Testing
 
-The AI extraction model is currently undergoing testing to ensure that:
+The AI extraction model is being tested to ensure:
 
 - Extracted information accurately matches the original CV.
-- JSON responses follow the desired structure consistently.
+- JSON responses consistently follow the desired structure.
 - Missing information is represented using `null` or empty arrays.
 - Incorrect or fabricated information is minimized.
 - Different CV layouts produce reliable extraction results.
 
-**The model is implemented, but its extraction accuracy and JSON response quality are still being evaluated and refined.**
+**The model is implemented, but extraction accuracy and JSON response quality are still being evaluated and refined.**
 
 ---
 
-### Phase 3 — AI-Based Job Matching
+### Phase 3 — AI-Based Job Matching & Ranking
 
-**Status: ⏳ Future Development**
+**Status: 🔄 Initial Implementation — Under Development**
 
-Once the information extraction model has been tested and finalized, the next phase will focus on:
+The first stage of the CV ranking system has been implemented.
 
-- Processing job descriptions.
-- Comparing candidate profiles against job requirements.
-- Implementing AI-based candidate matching.
-- Developing candidate relevance scoring and ranking.
+This introduces the foundation for evaluating candidate information against job descriptions and determining how relevant a CV is to a particular job.
 
-The matching methodology will be determined during this phase.
+#### Current Progress
+
+| Feature | Status |
+|---------|--------|
+| Initial CV ranking implementation | ✅ Implemented |
+| Integration of ranking functionality into the microservice | ✅ Implemented |
+| Refinement of job description matching | 🔄 In Progress |
+| Improvement and validation of ranking results | 🔄 In Progress |
+| Finalization of scoring and ranking methodology | ⏳ Planned |
+
+#### Next Steps
+
+- Refine the comparison between candidate profiles and job requirements.
+- Improve the relevance and reliability of ranking results.
+- Evaluate the effectiveness of the scoring methodology.
+- Test the ranking system using different CVs and job descriptions.
+- Finalize the matching and ranking process.
+
+**Note:** The ranking system is currently in its initial development stage. Its scoring methodology, accuracy, and final output format have not yet been finalized.
 
 ---
 
 ## Current Project Status
 
-**Last Updated:** November 20, 2026
+**Last Updated:** November 23, 2026
 
 ✅ **Completed:** Raw text extraction from PDF, Word, and image-based CVs, including OCR processing and extraction quality improvements.
 
 🔄 **Under Testing:** AI-based information extraction model that converts raw CV text into structured candidate JSON responses.
 
-⏳ **Next Focus:** Validate and improve the AI model's extraction accuracy and consistency before proceeding to job matching.
+🔄 **Under Development:** Initial AI-based CV ranking system for evaluating candidate relevance against job descriptions.
 
-⏳ **Future:** AI-based CV matching against job descriptions.
+⏳ **Next Focus:** Improve and validate information extraction accuracy, job description matching, and candidate ranking results.
 
 ---
 
 ## Installation & Usage
+
+In `test_input.py`, choose **Add CVs** for new files or **Add saved CVs** for entries in `output.xlsx`. Enter a job description and use **Process & rank** to append the ranked results to `ranking.xlsx`.
 
 For installation, dependencies, and instructions on running the project, see [how_to_use.md](how_to_use.md).

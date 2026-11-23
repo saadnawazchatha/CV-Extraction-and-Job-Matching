@@ -2,8 +2,10 @@ from fastapi import FastAPI, UploadFile
 from pydantic import BaseModel
 
 from .cv_parser import parse_cv
+from .cv_ranking import rank_cvs
 from .extraction.schema import CV
 from .information_extraction import extract_information
+from .ranking.schema import RankingRequest, RankingResponse
 
 app = FastAPI(title="CV extraction service", docs_url=None, redoc_url=None)
 
@@ -19,6 +21,11 @@ def read_cv(file: UploadFile) -> CVResponse:
     file_name, raw_text = parse_cv(file)
     extracted_data = extract_information(file_name, raw_text)
     return CVResponse(file_name=file_name, data=raw_text, extracted_data=extracted_data)
+
+
+@app.post("/cv/rank")
+def rank_cv_batch(request: RankingRequest) -> RankingResponse:
+    return rank_cvs(request)
 
 
 @app.get("/health")

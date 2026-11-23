@@ -3,9 +3,9 @@
 # the packages for the API, document readers, local OCR and Gemma extraction.
 -r app/requirements.txt
 
-# Upload CVs from the desktop tester and append test results to Excel
-# Tkinter supplies the file picker. The HTTPX dependency included above sends
-# each CV to POST /cv/raw. openpyxl lets workbook.py create output.xlsx with
-# the "File name", "Data" and "Extracted JSON" columns or reopen it to append rows. The shared
-# FileLock dependency keeps overlapping saves from overwriting rows.
+# Desktop tester and Excel reports
+# Tkinter supplies the file pickers and results table. HTTPX from the service
+# requirements sends uploads to /cv/raw and saved CV JSON to /cv/rank.
+# openpyxl reads and appends output.xlsx and writes ranked batches to ranking.xlsx.
+# The shared FileLock dependency keeps concurrent workbook saves from losing rows.
 openpyxl==3.1.5
