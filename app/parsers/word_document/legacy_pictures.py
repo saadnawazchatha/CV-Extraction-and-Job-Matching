@@ -12,12 +12,12 @@ from .office_art import floating_images, inline_image
 from .pictures import WORD_IMAGE_FORMATS
 
 OLE_SIGNATURE = bytes.fromhex("D0CF11E0A1B11AE1")
-# Positions of the named tables in the Word 97 File Information Block (MS-DOC).
+# The .doc header indexes the text, formatting, and drawing tables by these numbers.
 CHAR_FORMATTING, PIECE_TABLE, BODY_SHAPES, HEADER_SHAPES, DRAWINGS = 12, 33, 40, 41, 50
 
 
 def _picture_markers(word, clx):
-    """Find inline and floating picture characters in the current text pieces."""
+    # Read the current pieces of text. A .doc can retain unused bytes from earlier edits.
     pos = 0
     while pos < len(clx) and clx[pos] == 1:
         pos += 3 + unpack_from("<H", clx, pos + 1)[0]
@@ -32,6 +32,7 @@ def _picture_markers(word, clx):
     for i in range(count):
         first, last = unpack_from("<II", pieces, i * 4)
         address = unpack_from("<I", pieces, (count + 1) * 4 + i * 8 + 2)[0]
+        # Some pieces use two bytes per character, which changes the byte offset of each marker.
         width = 1 if address & 0x40000000 else 2
         start = (address & 0x3FFFFFFF) // (2 if width == 1 else 1)
         stop = start + (last - first) * width
@@ -40,6 +41,7 @@ def _picture_markers(word, clx):
         total_bytes += stop - start
         if total_bytes > 192 * 1024 * 1024:
             raise ValueError("The expanded Word document is too large.")
+        # Character 1 marks an inline picture. Character 8 anchors a floating shape to the text.
         pattern = rb"[\x01\x08]" if width == 1 else rb"[\x01\x08]\x00"
         for match in re.finditer(pattern, word[start:stop]):
             if match.start() % width == 0:
@@ -47,13 +49,13 @@ def _picture_markers(word, clx):
 
 
 def _picture_location(props):
-    # A character-property record identifies the offset in Word's Data stream.
     pos = 0
     location = None
     special = binary_data = deleted = False
     while pos + 2 <= len(props):
         code = unpack_from("<H", props, pos)[0]
         pos += 2
+        # The top three bits encode the value's size so we can skip unrelated properties.
         size = (1, 1, 2, 4, 2, 2, None, 3)[code >> 13]
         if size is None:
             if pos >= len(props):
@@ -62,7 +64,8 @@ def _picture_location(props):
             pos += 1
         if pos + size > len(props):
             return None
-        if code == 0x6A03:  # sprmCPicLocation
+        # This property points into the Data stream. The other flags identify live pictures.
+        if code == 0x6A03:
             location = unpack_from("<I", props, pos)[0]
         elif code == 0x0855:
             special = bool(props[pos])
@@ -77,6 +80,7 @@ def _picture_location(props):
 def _formatting_page(block):
     if len(block) != 512:
         return
+    # The last byte counts the formatting runs. Each run covers a range of text.
     n = block[511]
     if 4 * (n + 1) + n > 511:
         return
@@ -90,7 +94,6 @@ def _formatting_page(block):
 
 
 def _inline_runs(word, table):
-    # The active character-formatting table points to 512-byte formatting pages.
     runs = []
     count = (len(table) - 4) // 8
     decoded = {}
@@ -109,7 +112,7 @@ def _inline_runs(word, table):
 
 
 def _shape_anchors(table, story_start):
-    count = (len(table) - 4) // 30  # A character position and a 26-byte SPA per shape.
+    count = (len(table) - 4) // 30
     for i in range(count):
         cp = unpack_from("<I", table, 4 * i)[0]
         shape = unpack_from("<I", table, 4 * (count + 1) + 26 * i)[0]
@@ -118,9 +121,10 @@ def _shape_anchors(table, story_start):
 
 def _referenced_images(ole):
     word = memoryview(ole.openstream("WordDocument").read())
-    if unpack_from("<H", word, 2)[0] < 0x00C1:  # Word versions before OfficeArt
+    if unpack_from("<H", word, 2)[0] < 0x00C1:
         return
     flags = unpack_from("<H", word, 10)[0]
+    # Word's header selects which table stream holds the current text and drawing offsets.
     table_name = "1Table" if flags & 0x0200 else "0Table"
     table = memoryview(ole.openstream(table_name).read())
     sizes = 34 + 2 * unpack_from("<H", word, 32)[0]
@@ -144,13 +148,16 @@ def _referenced_images(ole):
         "<5I", word, sizes + 2 + 3 * 4
     )
     hidden_start = main_chars + footnote_chars + header_chars
+    # Header anchors start counting at the header. Shift them to document-wide positions.
     anchors = dict(_shape_anchors(section(BODY_SHAPES), 0))
     anchors.update(_shape_anchors(section(HEADER_SHAPES), main_chars + footnote_chars))
     shapes = floating_images(section(DRAWINGS), word, set(anchors.values())) if anchors else {}
     data = memoryview(ole.openstream("Data").read()) if ole.exists("Data") else memoryview(b"")
     for cp, fc, marker in chain((first_marker,), markers):
+        # Skip pictures in macros and review comments so their text stays out of the CV.
         if hidden_start <= cp < hidden_start + macro_chars + comment_chars:
             continue
+        # Floating pictures have shape anchors. Inline pictures use the marker's formatting run.
         if marker == 8:
             image = shapes.get(anchors.get(cp))
             if image is not None:
@@ -168,18 +175,22 @@ def add_picture_text(content: bytes, read_native) -> str:
     try:
         import olefile
     except ImportError as error:
-        raise FileNotFoundError("Legacy Word picture support needs olefile. Run python -m pip install -r requirements.txt.") from error
+        raise FileNotFoundError(
+            "Legacy Word picture support needs olefile. Run python -m pip install -r requirements.txt."
+        ) from error
     try:
         temporary_copy = BytesIO(content)
         with olefile.OleFileIO(temporary_copy, write_mode=True) as document:
             pictures = list(_referenced_images(document))
             if not pictures:
                 return native_text
-            # Antiword gives floating shapes no position in its text output.
-            # Mark those positions in a disposable copy with unused printable
-            # characters. Antiword then gives us their reading order too.
             marks = ""
-            if any(kind == "floating" for _, kind, _ in pictures) or native_text.count("[pic]") != len(pictures):
+            # Antiword can omit floating pictures or give several pictures the same [pic] label.
+            # Mark this memory copy with unused characters to locate each picture on a second pass.
+            if (
+                any(kind == "floating" for _, kind, _ in pictures)
+                or native_text.count("[pic]") != len(pictures)
+            ):
                 available = "".join(c for c in punctuation + ascii_letters + digits if c not in native_text)
                 if len(available) >= len(pictures):
                     marks = available[:len(pictures)]
@@ -195,6 +206,7 @@ def add_picture_text(content: bytes, read_native) -> str:
     for _, _, picture in pictures:
         text = ""
         if picture is not None:
+            # A repeated image with the same crop only needs one OCR pass.
             if picture not in cache:
                 image, crop = picture
                 cache[picture] = read_image(bytes(image), formats=WORD_IMAGE_FORMATS, crop=crop)
@@ -205,17 +217,21 @@ def add_picture_text(content: bytes, read_native) -> str:
         try:
             marked_text = read_native(temporary_copy.getvalue())
         except ValueError:
-            marked_text = None  # Keep the already-read native text if the marked copy fails.
+            marked_text = None
         if marked_text is not None and all(marked_text.count(mark) <= 1 for mark in marks):
             replacements = dict(zip(marks, texts))
-            rendered = re.sub("[" + re.escape(marks) + "]",
-                              lambda m: "\n" + replacements[m[0]] + "\n", marked_text)
-            # Some older writers place pictures in stories Antiword does not print.
+            rendered = re.sub(
+                "[" + re.escape(marks) + "]",
+                lambda m: "\n" + replacements[m[0]] + "\n",
+                marked_text,
+            )
+            # Keep OCR text even if Antiword drops its marker during the second pass.
             missing = [text for mark, text in replacements.items() if mark not in marked_text and text]
             return "\n\n".join(filter(None, (rendered.strip(), *missing)))
 
     inline = [text for (_, kind, _), text in zip(pictures, texts) if kind == "inline"]
     floating = [text for (_, kind, _), text in zip(pictures, texts) if kind == "floating"]
+    # Replace [pic] only if each placeholder matches an inline picture. Append any unplaced text.
     if inline and native_text.count("[pic]") == len(inline):
         values = iter(inline)
         native_text = re.sub(r"\[pic\]", lambda _: "\n" + next(values) + "\n", native_text)

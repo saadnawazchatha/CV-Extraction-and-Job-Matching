@@ -1,50 +1,45 @@
-# Receive CV uploads and return raw text plus structured information
-# FastAPI defines POST /cv/raw and returns the filename, text and extracted CV object.
-# Uvicorn runs the HTTP server that listens for requests. python-multipart
-# decodes the upload's file field so the reader can access the original bytes.
+# API server and CV uploads
+# Defines the HTTP routes that callers use to upload a CV and receive its extracted data.
 fastapi==0.162.2
+# Runs the FastAPI application as a local HTTP server.
 uvicorn==0.54.0
+# Decodes the file sent in a multipart upload so the parser can read its bytes.
 python-multipart==0.0.33
 
-# Read Word documents
-# python-docx (imported as docx) opens .docx files so the reader can collect
-# text from paragraphs, tables, headers and footers, along with hyperlink URLs.
-# For older .doc files, Antiword reads typed text and olefile opens the binary
-# Word streams so the reader can locate embedded pictures for the same local OCR.
+# Word document parsing
+# Opens .docx packages and exposes their XML, headers, footers, and embedded image relationships.
 python-docx==1.2.0
+# Reads the binary streams in older .doc files to locate pictures for OCR. Antiword reads the native text.
 olefile==0.47
 
-# Read PDF text and render scanned pages
-# pypdf retrieves link destinations and filled form fields that may be stored
-# separately from visible text. pdfplumber extracts selectable text page by
-# page. When a page has content but yields no text, pypdfium2 renders that
-# page as an image for OCR.
+# PDF text, links, forms, and scanned pages
+# Reads link targets and filled-in form fields that a CV's visible page text may omit.
 pypdf==6.21.4
+# Extracts selectable text from each page before the parser decides whether OCR is needed.
 pdfplumber==0.11.10
+# Renders pages that need OCR into images for the image reader.
 pypdfium2==5.15.2
 
-# Recognize text with local OCR models
-# PaddleOCR takes an image and returns recognized lines of text. PaddleX
-# connects the stages that orient the page, locate the text and read each
-# line. PaddlePaddle runs those models on the CPU using the weights that
-# install.py stores in app/models/OCR/.
+# Offline OCR on the CPU
+# Provides the CPU runtime that executes the installed OCR models.
 paddlepaddle==3.3.1
+# Provides the prediction API the image reader calls to get recognized text lines.
 paddleocr==3.7.0
+# Runs the page orientation, text detection, and text recognition pipeline used by PaddleOCR.
 paddlex==3.7.2
 
-# Prepare image pixels for OCR
-# Pillow (imported as PIL) opens images, applies rotation from photo metadata
-# and reads multipage TIFFs one frame at a time. NumPy converts the resulting
-# pixels into an array with the blue, green and red channel order that
-# PaddleOCR expects.
+# Image decoding and preparation for OCR
+# Converts image pixels into the BGR array expected by the OCR predictor.
 numpy==2.3.5
+# Opens image files, reads TIFF pages, and applies orientation, cropping, and resizing before OCR.
 Pillow==13.0.0
 
-# Extract structured information from raw CV text
-# HTTPX talks to the project's Ollama server on this computer for model setup
-# and inference. Pydantic defines the full JSON schema given to Gemma 4 E4B and checks
-# each response before returning it. FileLock keeps two installers from writing
-# the same model store at once. Ollama itself is a separate application.
+# Structured CV extraction with local Gemma
+# Sends CV text and the JSON schema to the project's Ollama server on localhost.
 httpx==0.28.1
+# Defines the expected CV fields and validates Gemma's JSON before the API returns it.
 pydantic==2.14.3
+
+# Model installation
+# Prevents concurrent installers from updating the local model files at the same time.
 filelock==4.2.10

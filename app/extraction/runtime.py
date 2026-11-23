@@ -9,7 +9,6 @@ from pathlib import Path
 
 import httpx
 
-
 MODEL = "gemma4:e4b"
 MODEL_DIR = Path(__file__).resolve().parents[1] / "models" / "extractor model"
 
@@ -20,10 +19,11 @@ def local_ollama() -> Iterator[httpx.Client]:
     if not executable:
         raise FileNotFoundError("Install Ollama for Windows, reopen PowerShell, then run python install.py.")
 
-    # A separate loopback port lets a normal desktop Ollama session keep its own model store.
+    # Pick a free loopback port so this server can run alongside an existing Ollama session.
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         host = f"127.0.0.1:{reservation.getsockname()[1]}"
+    # Use the project's installed weights, disable cloud inference, and run on the CPU.
     environment = {
         **os.environ,
         "OLLAMA_HOST": host,
@@ -37,13 +37,18 @@ def local_ollama() -> Iterator[httpx.Client]:
         "ROCR_VISIBLE_DEVICES": "-1",
     }
     server = subprocess.Popen(
-        [executable, "serve"], env=environment,
-        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        [executable, "serve"],
+        env=environment,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
     try:
         timeout = httpx.Timeout(1800, connect=5)
+        # Ignore system proxy settings so CV text goes straight to this local server.
         with httpx.Client(base_url=f"http://{host}", trust_env=False, timeout=timeout) as client:
+            # Wait for the version endpoint to answer before handing the client to the caller.
             deadline = time.monotonic() + 30
             while time.monotonic() < deadline:
                 if server.poll() is not None:
@@ -59,6 +64,7 @@ def local_ollama() -> Iterator[httpx.Client]:
                 raise RuntimeError("The project Ollama server did not start within 30 seconds.")
             yield client
     finally:
+        # Release the server and its memory even when startup or extraction fails.
         if server.poll() is None:
             server.terminate()
             try:

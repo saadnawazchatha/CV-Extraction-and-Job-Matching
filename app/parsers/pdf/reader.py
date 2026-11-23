@@ -12,23 +12,24 @@ from pypdf.errors import DependencyError, FileNotDecryptedError, PyPdfError
 
 from app.parsers.OCR.reader import recognize
 
+# PDFium shares state across threads, so concurrent uploads take turns rendering pages.
 _render_lock = Lock()
 
 
 def _render_page(content: bytes, index: int) -> Image.Image:
-    # PDFium is shared by the API's worker threads. Release it before running OCR.
     with _render_lock, pdfium.PdfDocument(content, password="") as document:
         with closing(document[index]) as page:
             width, height = page.get_size()
             if not all(isfinite(side) and side > 0 for side in (width, height)):
                 raise ValueError("Invalid PDF page dimensions.")
+            # A PDF inch is 72 points. Aim for 300 DPI and cap the long edge to limit memory.
             scale = min(300 / 72, 3000 / max(width, height))
             with closing(page.render(scale=scale)) as bitmap:
                 return bitmap.to_pil().copy()
 
 
 def _append_links(page: PageObject, text: str) -> str:
-    # A visible label such as "Portfolio" can have a separate URL in the PDF.
+    # A label such as 'Portfolio' can hide the actual URL in a link annotation.
     for reference in page.annotations or []:
         annotation = reference.get_object()
         action = annotation.get("/A") if isinstance(annotation, dict) else None
@@ -41,7 +42,6 @@ def _append_links(page: PageObject, text: str) -> str:
 
 def read_pdf(content: bytes) -> str:
     try:
-        # pypdf preserves link targets and filled form fields alongside pdfplumber's page text.
         document = PdfReader(BytesIO(content))
         if document.is_encrypted and not document.decrypt(""):
             raise ValueError("This PDF requires a password. Upload an unlocked copy.")
@@ -50,13 +50,14 @@ def read_pdf(content: bytes) -> str:
         with pdfplumber.open(BytesIO(content)) as pdf:
             for index, page in enumerate(pdf.pages):
                 text = (page.extract_text() or "").strip()
-                # A blank page has no drawing objects. A scan has pixels but no text.
+                # OCR pages with content but no text. A CV can mix scans and selectable text.
                 if not text and page.objects:
                     with _render_page(content, index) as image:
                         text = recognize(image)
                 parts.append(_append_links(document.pages[index], text))
                 page.close()
-        # Filled text fields may be stored separately from the visible page text.
+
+        # Form values can sit outside the page text. Keep them with their field names.
         for name, value in document.get_form_text_fields().items():
             if isinstance(value, str) and value.strip():
                 parts.append(f"{name}: {value}")
