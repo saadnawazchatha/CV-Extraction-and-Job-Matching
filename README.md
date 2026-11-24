@@ -5,17 +5,35 @@
 
 A Python-based microservice developed to overcome the limitations of traditional Regex-based CV extraction.
 
-The project extracts raw text from CVs, processes it using an AI-based information extraction model, and generates structured candidate information in JSON format.
+The system extracts raw text from CVs, converts it into structured candidate information using AI, and evaluates candidate relevance against job descriptions.
 
-The system also includes an initial CV ranking implementation that evaluates candidate relevance against job descriptions.
+The service supports **three independent processing modes**, allowing users to perform only the operations they require.
 
 ## Project Workflow
 
 1. **Document Upload:** Accept CVs in PDF, Word, and image formats.
-2. **Raw Text Extraction:** Extract text using dedicated document parsers and OCR where required.
-3. **AI Information Extraction:** Process raw text using an AI model to identify relevant candidate information.
-4. **JSON Response:** Generate structured candidate information in a standardized JSON format.
-5. **AI-Based Job Matching:** Compare candidate information against job descriptions to evaluate and rank CVs by relevance.
+2. **Raw Text Extraction:** Extract text using dedicated document parsers and OCR.
+3. **AI Information Extraction:** Convert raw CV text into structured candidate information.
+4. **JSON Response:** Return extracted information in a standardized JSON format.
+5. **CV Ranking:** Compare candidate information against job descriptions and generate relevance scores.
+
+---
+
+## Service Modes
+
+The microservice is divided into three independently usable processing modes.
+
+| Mode | Function | Status |
+|------|----------|--------|
+| **1. Parsing** | Extract raw text from CV documents | ✅ Completed |
+| **2. Information Extraction** | Convert raw CV text into structured JSON | ✅ Completed |
+| **3. CV Ranking** | Evaluate CV relevance against job descriptions | 🔄 Under Refinement |
+
+Each mode can be used separately depending on the required functionality.
+
+For example, users can request **only raw text extraction**, obtain **structured candidate information without ranking**, or use the **ranking functionality** when candidate evaluation is required.
+
+This modular approach avoids unnecessary processing and provides greater flexibility when integrating the service into other applications.
 
 ---
 
@@ -31,21 +49,20 @@ The system also includes an initial CV ranking implementation that evaluates can
 | Text extraction from PDFs | ✅ Completed |
 | OCR-based extraction from images | ✅ Completed |
 | Scanned PDF processing using OCR | ✅ Completed |
-| OCR for images embedded in Word documents | ✅ Completed |
-| Return uploaded filename and extracted raw text | ✅ Completed |
-| Improve extraction accuracy and text structure | ✅ Completed |
+| OCR for embedded images in Word documents | ✅ Completed |
+| Improved extraction accuracy and text structure | ✅ Completed |
 
-The extraction pipeline has been refined to provide more accurate, structured, and readable raw text for downstream AI processing.
+The parsing pipeline produces accurate, organized, and readable raw text for downstream processing.
 
 ---
 
 ### Phase 2 — Structured Information Extraction
 
-**Status: 🔄 Implemented — Under Testing**
+**Status: ✅ Completed & Tested**
 
-An AI-based information extraction model has been integrated into the processing pipeline.
+An AI-based information extraction model processes parsed CV text and generates structured candidate information in JSON format.
 
-Once a CV has been parsed, the raw text is passed to the AI model, which extracts relevant candidate information and generates a structured JSON response.
+The extraction model has been tested and validated against the desired JSON structure, completing this development phase.
 
 The extracted information includes:
 
@@ -55,9 +72,9 @@ The extracted information includes:
 - **Work Experience:** Job title, company, employment period, and highlights.
 - **Education:** Degree, institution, and graduation year.
 
-#### Desired JSON Response
+#### JSON Response Format
 
-Example of the expected output using fictional candidate information:
+Example using fictional candidate information:
 
 ```json
 {
@@ -97,66 +114,51 @@ Example of the expected output using fictional candidate information:
 }
 ```
 
-#### Current Testing
-
-The AI extraction model is being tested to ensure:
-
-- Extracted information accurately matches the original CV.
-- JSON responses consistently follow the desired structure.
-- Missing information is represented using `null` or empty arrays.
-- Incorrect or fabricated information is minimized.
-- Different CV layouts produce reliable extraction results.
-
-**The model is implemented, but extraction accuracy and JSON response quality are still being evaluated and refined.**
+Missing information is represented using `null` or empty arrays rather than fabricated values.
 
 ---
 
 ### Phase 3 — AI-Based Job Matching & Ranking
 
-**Status: 🔄 Initial Implementation — Under Development**
+**Status: 🔄 Implemented — Under Testing & Refinement**
 
-The first stage of the CV ranking system has been implemented.
+The CV ranking system has been implemented and can evaluate candidate relevance against job descriptions.
 
-This introduces the foundation for evaluating candidate information against job descriptions and determining how relevant a CV is to a particular job.
-
-#### Current Progress
+The functionality is operational, but further improvements are required to enhance the accuracy and reliability of ranking results.
 
 | Feature | Status |
 |---------|--------|
-| Initial CV ranking implementation | ✅ Implemented |
-| Integration of ranking functionality into the microservice | ✅ Implemented |
-| Refinement of job description matching | 🔄 In Progress |
-| Improvement and validation of ranking results | 🔄 In Progress |
-| Finalization of scoring and ranking methodology | ⏳ Planned |
+| Initial CV ranking implementation | ✅ Completed |
+| Integration with the processing pipeline | ✅ Completed |
+| Job description-based candidate evaluation | ✅ Implemented |
+| Testing and improving ranking accuracy | 🔄 In Progress |
+| Refinement of relevance scoring | 🔄 In Progress |
+| Final validation of ranking results | ⏳ Pending |
 
-#### Next Steps
-
-- Refine the comparison between candidate profiles and job requirements.
-- Improve the relevance and reliability of ranking results.
-- Evaluate the effectiveness of the scoring methodology.
-- Test the ranking system using different CVs and job descriptions.
-- Finalize the matching and ranking process.
-
-**Note:** The ranking system is currently in its initial development stage. Its scoring methodology, accuracy, and final output format have not yet been finalized.
+**Current Focus:** Improving the quality, consistency, and reliability of candidate relevance scores before finalizing the ranking system.
 
 ---
 
 ## Current Project Status
 
-**Last Updated:** November 23, 2026
+**Last Updated:** November 24, 2026
 
-✅ **Completed:** Raw text extraction from PDF, Word, and image-based CVs, including OCR processing and extraction quality improvements.
+✅ **Completed:** Raw text extraction across all supported CV formats, including OCR.
 
-🔄 **Under Testing:** AI-based information extraction model that converts raw CV text into structured candidate JSON responses.
+✅ **Completed & Tested:** AI-based information extraction with structured JSON responses.
 
-🔄 **Under Development:** Initial AI-based CV ranking system for evaluating candidate relevance against job descriptions.
+✅ **Implemented:** Three independently usable service modes for parsing, information extraction, and ranking.
 
-⏳ **Next Focus:** Improve and validate information extraction accuracy, job description matching, and candidate ranking results.
+🔄 **Under Refinement:** AI-based CV ranking against job descriptions.
+
+🎯 **Next Focus:** Improve ranking accuracy, relevance scoring, and overall matching reliability.
 
 ---
 
 ## Installation & Usage
 
-In `test_input.py`, choose **Add CVs** for new files or **Add saved CVs** for entries in `output.xlsx`. Enter a job description and use **Process & rank** to append the ranked results to `ranking.xlsx`.
+In `test_input.py`, choose **Add CVs** to process new documents or **Add saved CVs** to select entries from `output.xlsx`.
 
-For installation, dependencies, and instructions on running the project, see [how_to_use.md](how_to_use.md).
+Enter a job description and select **Process & rank** to save ranked results to `ranking.xlsx`.
+
+For installation, configuration, dependencies, and detailed usage instructions, see [how_to_use.md](how_to_use.md).
