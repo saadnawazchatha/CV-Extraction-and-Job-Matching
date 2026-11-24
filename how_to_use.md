@@ -1,155 +1,531 @@
-# CV extraction and ranking
 
-Use the desktop tester to get raw text from a CV, extract structured information as JSON, or rank CVs against a job description. The tester saves each stage’s results to Excel.
+# How to Use — CV Extraction & Job Matching
 
-On Windows, open the project folder in VS Code with **File > Open Folder**. Open **Terminal > New Terminal**, then use the dropdown next to **+** in the terminal panel to open a **Command Prompt** terminal. [VS Code terminal guide](https://code.visualstudio.com/docs/terminal/basics)
+![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-Local_AI-black)
+![VS Code](https://img.shields.io/badge/Editor-VS_Code-007ACC)
 
-Run the commands from the folder containing `test_input.py`. 
+This guide explains how to install, run, and integrate the CV Extraction & Job Matching microservice.
 
-## One-time setup
+The service provides three independently accessible features:
 
-Use **64-bit Python 3.12**. Install Ollama for Windows, then restart VS Code and open a new Command Prompt terminal so the `ollama` command is available. [Ollama for Windows](https://ollama.com/download/windows)
+| Feature | Purpose |
+|---------|---------|
+| Parsing | Extract raw text from CV documents |
+| Information Extraction | Convert raw text into structured JSON |
+| CV Ranking | Score and rank CVs against a job description |
+
+---
+
+## 1. Prerequisites
+
+### Python Compatibility
+
+This project was developed and tested using **64-bit Python 3.12 on Windows**.
+
+Based on the current project dependencies, the expected Python compatibility range is **Python 3.11–3.13 (64-bit)**.
+
+| Python Version | Compatibility |
+|----------------|---------------|
+| Python 3.10 and older | ❌ Not Supported |
+| Python 3.11 | ✅ Dependency Compatible — Not Yet Tested |
+| Python 3.12 | ✅ Tested & Recommended |
+| Python 3.13 | ✅ Dependency Compatible — Not Yet Tested |
+| Python 3.14 and newer | ❌ Not Supported by Current Dependencies |
+
+Python 3.12 is recommended for the most reliable experience.
+
+Python compatibility is limited by the pinned versions of [NumPy](https://pypi.org/project/numpy/2.3.5/) and [PaddlePaddle](https://pypi.org/project/paddlepaddle/3.3.1/).
+
+### Required Software
+
+Install the following before proceeding:
+
+- [Python](https://www.python.org/downloads/windows/) — 64-bit, preferably Python 3.12
+- [Visual Studio Code](https://code.visualstudio.com/download)
+- [Git for Windows](https://git-scm.com/download/win)
+- [Ollama for Windows](https://ollama.com/download/windows)
+- [Python Extension for VS Code](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+
+Ensure Python, Git, and Ollama are accessible from the terminal.
+
+Legacy `.doc` text extraction also requires Antiword, available through supported Git for Windows installations or separately on PATH.
+
+---
+
+## 2. Clone the Repository
+
+Open VS Code and select **Terminal > New Terminal**.
+
+Use the dropdown next to the terminal's `+` button to select **Command Prompt (CMD)**.
+
+Navigate to your preferred location and run:
 
 ```bat
-"%LOCALAPPDATA%\Programs\Python\Python312\python.exe" -m venv .venv
+git clone https://github.com/saadnawazchatha/CV-Extraction-and-Job-Matching.git
+
+cd CV-Extraction-and-Job-Matching
+
+code .
+```
+
+This opens the cloned project in VS Code.
+
+Run all subsequent commands from the project root, which contains `install.py`, `requirements.txt`, and `test_input.py`.
+
+---
+
+## 3. One-Time Installation
+
+### Create a Virtual Environment
+
+Check the installed Python versions:
+
+```bat
+py -0p
+```
+
+Create a virtual environment using your installed Python version.
+
+**Python 3.12 (Recommended):**
+
+```bat
+py -3.12 -m venv .venv
+```
+
+**Alternatively, for Python 3.11:**
+
+```bat
+py -3.11 -m venv .venv
+```
+
+**Alternatively, for Python 3.13:**
+
+```bat
+py -3.13 -m venv .venv
+```
+
+Run only one of the above commands.
+
+In VS Code, press `Ctrl + Shift + P`, select **Python: Select Interpreter**, and choose the interpreter inside `.venv`.
+
+Verify the selected Python version:
+
+```bat
+.\.venv\Scripts\python.exe --version
+```
+
+### Install Dependencies
+
+```bat
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
+
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+The root `requirements.txt` installs dependencies for both the microservice and desktop tester.
+
+If you only require the API service without the desktop tester, install:
+
+```bat
+.\.venv\Scripts\python.exe -m pip install -r app\requirements.txt
+```
+
+### Install AI and OCR Models
+
+Verify that Ollama is installed:
+
+```bat
+ollama --version
+```
+
+Download the required models:
+
+```bat
 .\.venv\Scripts\python.exe install.py
 ```
 
-The root `requirements.txt` installs the service and tester together. For the service alone, use `app\requirements.txt` in the pip install command. The commands below use the virtual environment’s interpreter directly. To activate it in Command Prompt, run `.\.venv\Scripts\activate.bat`.
+The installation script automatically downloads and verifies:
 
-`install.py` checks the three OCR models in `app/models/OCR/` and the shared `gemma4:e4b` model in `app/models/extractor model/`. It downloads missing files and reuses installed models. After setup, extraction and ranking run offline on the CPU.
+| Model | Purpose |
+|-------|---------|
+| PaddleOCR models | Image and scanned document text extraction |
+| Gemma 4 (`gemma4:e4b`) | Structured information extraction and CV ranking |
 
-## Start the app
+Models are stored inside `app/models/`.
 
-If the previous version is running, stop its server with `Ctrl+C` and close its tester window before starting the updated files.
+An internet connection is required for initial installation. Once installed, AI and OCR processing run locally on the CPU without requiring cloud API keys.
 
-In the first **Command Prompt** terminal in VS Code, start FastAPI and leave it running.
+Running `install.py` again reuses existing models and downloads missing files.
+
+---
+
+## 4. Running the Application
+
+The project can be used in two ways:
+
+- **Desktop Tester:** A graphical interface for testing the service and exporting results to Excel.
+- **Standalone API:** A FastAPI microservice that can be integrated into other applications.
+
+### Start the Microservice
+
+Open a Command Prompt terminal in VS Code and run:
 
 ```bat
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open a second **Command Prompt** terminal from the same dropdown. In the same project folder, start the tester.
+The API is now available at:
+
+`http://127.0.0.1:8000`
+
+Keep this terminal running while using the service.
+
+To verify that the server is running, open:
+
+[http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+
+Expected response:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+---
+
+## 5. Using the Desktop Tester
+
+With the microservice running, open a second Command Prompt terminal in VS Code.
+
+Run:
 
 ```bat
 .\.venv\Scripts\python.exe test_input.py
 ```
 
-## Parse, extract, or rank CVs in the tester
+### Adding CVs
 
-Add one or more entries to the queue. You can mix CV files, raw text, and extracted JSON in a single ranking batch.
+The tester accepts multiple input types:
 
-| What you have | How to add it |
-|---|---|
-| CV documents or images | Click **Add CV files…** and select one or more files. |
-| Existing raw text | Use **Add raw text > Choose files…** for UTF-8 `.txt` files, or **Add raw text > Paste…** to enter a CV filename and its text. A text-file import uses the `.txt` filename. |
-| Existing extracted JSON | Use **Add JSON > Choose files…** for one or more `.json` files, or **Add JSON > Paste…**. A single `/cv/extract` response already contains the filename. For a bare CV object, the tester uses the JSON filename on import or the CV filename you enter when pasting. |
-| Saved Excel entries | Click **Add from Excel**, choose `raw data.xlsx`, `information.xlsx`, or the older `output.xlsx`, select the CVs, and click **Add selected**. |
+| Option | Description |
+|--------|-------------|
+| Add CV files | Upload PDF, Word, or image files |
+| Add raw text | Import text files or paste existing CV text |
+| Add JSON | Import or paste extracted candidate information |
+| Add from Excel | Reuse CV information from existing workbooks |
 
-For multiple CVs in one JSON file or paste, use a list of extraction responses or an object with a `cvs` list. Each entry must contain its own `file_name` and `extracted_data`.
+### Processing CVs
 
-Use **Remove selected** to adjust the queue, then click the action you want. For **Rank CVs**, paste the posting into **Job description** first. Include at least one education, experience, or skills requirement. You can leave the description blank for the other two actions.
+Select the required operation:
 
-| Starting input | Get raw text | Extract information | Rank CVs |
-|---|---|---|---|
-| CV file | Parse | Parse → extract | Parse → extract → rank |
-| Existing raw text | Display the supplied text | Extract | Extract → rank |
-| Existing extracted JSON | — | Display the supplied JSON | Rank |
+| Action | Result |
+|--------|--------|
+| Get raw text | Returns parsed CV text |
+| Extract information | Returns structured candidate JSON |
+| Rank CVs | Scores and ranks candidates against a job description |
 
-**Get raw text** is available when every queued entry has a CV file or raw text. The queue stays in place after each run. For example, you can inspect a CV’s raw text, click **Extract information** on the same queue, then click **Rank CVs** after entering a posting. To rank the same CVs against another job, edit the description and click **Rank CVs** again.
+Enter a job description when using **Rank CVs**. A job description is not required for parsing or information extraction.
 
-Select a ranked result to see the extracted JSON, job weights, the CV fields supporting each match, and raw text when available. A required item marked **review** has partial or missing evidence. If a file fails, successful stages stay saved. Fix or remove the failed file, then retry.
+The tester automatically performs any preceding processing stages required for the selected operation.
 
-Supported uploads are Word (`.doc`, `.docx`), PDF, and JPEG, PNG, TIFF, BMP, or WebP images. The upload limit is 32 MiB per file and the image limit is 50 megapixels per frame. PDF pages with readable text are parsed directly. Scanned pages and embedded Word pictures use local OCR. Legacy `.doc` text requires Antiword on `PATH` or in the Git for Windows installation. OCR text appears at the picture's position when available. In older `.doc` files, any picture text that Antiword cannot place is appended.
+Previously extracted information can be reused without processing the original CV again.
 
-## Find the Excel results
+### Supported File Formats
 
-Each workbook is created beside `test_input.py` the first time the tester saves that stage. Later runs append new results.
+- Word documents (`.doc`, `.docx`)
+- PDF documents, including scanned PDFs
+- JPEG, PNG, TIFF, BMP, and WebP images
+- Word documents containing embedded images
 
-| Workbook | Columns in order |
-|---|---|
-| `raw data.xlsx` | File name, Raw text |
-| `information.xlsx` | File name, Information |
-| `ranking.xlsx` | Job description, File name, CV JSON, Education score, Experience score, Skills score, Overall score, Rank |
+**Maximum upload size:** 32 MiB per CV.
 
-The **Information** column holds the extracted CV as JSON text. Ranking a new CV file writes to all three workbooks. Ranking supplied raw text writes to `information.xlsx` and `ranking.xlsx`. Ranking supplied JSON writes only to `ranking.xlsx`. If a CV is already in the queue, the tester reuses its completed stages.
+### Excel Results
 
-Each completed ranking adds one row per CV, highest overall score first. Rank 1 is the best fit. The job description appears only on the first row of that batch. Ties keep their submission order. Long values in `ranking.xlsx` link to the **Long text** sheet. When the tester next saves to an older ranking report, it adds the **Rank** column and numbers the CVs within each existing batch.
+The desktop tester automatically creates the following workbooks in the project directory:
 
-In `raw data.xlsx` and `information.xlsx`, oversized text or JSON continues on subsequent rows with a blank filename. **Add from Excel** reassembles those pieces. In a legacy `output.xlsx`, entries with only **Data** can start at extraction, and entries with **Extracted JSON** can go straight to ranking.
+| File | Contents |
+|------|----------|
+| `raw data.xlsx` | CV filenames and extracted raw text |
+| `information.xlsx` | CV filenames and structured JSON |
+| `ranking.xlsx` | Job descriptions, candidate scores, and ranking results |
 
-If Excel blocks a save, close the workbook and retry in the same tester window. Keeping the same job description and queue lets the tester reuse completed stages and any ranking waiting to be saved.
+Ranking results are ordered by overall relevance score, with Rank 1 representing the highest-scoring candidate.
 
-## Read the scores
+Close open Excel workbooks before saving additional results.
 
-Gemma matches every CV against the same job checklist. Python gives required items two points and preferred items one. Supported matches earn full credit, partial matches earn half, and missing evidence earns zero.
+---
 
-| Posting | Education | Experience | Skills |
-|---|---:|---:|---:|
-| Standard | 10% | 50% | 40% |
-| Explicitly entry-level, internship, new-graduate, or no prior experience required | 10% | 30% | 60% |
+## 6. Using the Standalone API
 
-Each category score is `10 × earned points ÷ possible points`. The overall score is the weighted average of the category scores. A category with no requirements shows 0 and has zero weight. The other weights scale to 100%. For example, if a posting only requires Python and prefers SQL, a CV documenting Python alone earns 2 of 3 points. Its skills and overall scores are both **6.67/10**.
+The desktop tester is optional.
 
-## Call the API directly
+Any application capable of making HTTP requests can communicate directly with the microservice.
 
-Use `http://127.0.0.1:8000` as the base URL. The API returns JSON. The tester writes the Excel reports.
+Start the server using the command in Section 4.
 
-| Endpoint | Input | Returns |
-|---|---|---|
-| `GET /health` | No body | `{"status":"ok"}` |
-| `POST /cv/raw` | One multipart upload in the `file` field | `file_name` and `raw_text` |
-| `POST /cv/extract` | A JSON object with `file_name` and `raw_text` | `file_name` and the structured CV in `extracted_data` |
-| `POST /cv/rank` | A JSON object with `job_description` and a nonempty `cvs` list. Each entry supplies `file_name` and `extracted_data`. | `job_description` and the ordered `ranked_cvs` list |
+### Base URL
 
-To parse a single file, replace `sample.pdf` with your file. The first command saves the raw response in `raw.json`. Run the second command to extract structured information from it.
-
-```bat
-curl.exe -f -F "file=@sample.pdf" -o raw.json http://127.0.0.1:8000/cv/raw
-curl.exe -f -H "Content-Type: application/json" --data-binary "@raw.json" http://127.0.0.1:8000/cv/extract
+```text
+http://127.0.0.1:8000
 ```
 
-If you already have text, you can start with the second command. Save a UTF-8 `raw.json` file containing a filename and text, for example `{"file_name":"candidate-a.pdf","raw_text":"Skills: Python and SQL."}`.
+### Available API Endpoints
 
-`extracted_data` includes contact details, summary, skills, experience, and education. Gemma keeps the candidate's written summary. When it is missing, Gemma summarizes stated professional or educational facts, or reports that none were available.
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/health` | Check service availability |
+| POST | `/cv/raw` | Parse a CV into raw text |
+| POST | `/cv/extract` | Extract structured candidate information |
+| POST | `/cv/rank` | Score and rank candidates |
 
-This Python example ranks two files. Replace the filenames with your own. To run it in VS Code, save it as `rank_example.py` in the project folder and run `.\.venv\Scripts\python.exe rank_example.py` while the API is running.
+All endpoints return JSON responses.
+
+The API does not generate Excel files. Excel reporting is handled separately by the desktop tester.
+
+### Endpoint 1 — Raw Text Extraction
+
+**POST `/cv/raw`**
+
+Send a CV document as multipart form data using the `file` field.
+
+Example using the VS Code terminal:
+
+```bat
+curl.exe -f -F "file=@sample.pdf" http://127.0.0.1:8000/cv/raw
+```
+
+Example response:
+
+```json
+{
+  "file_name": "sample.pdf",
+  "raw_text": "John Doe. Software Developer. Skills: Python, SQL."
+}
+```
+
+Use this endpoint when only document parsing is required.
+
+### Endpoint 2 — Structured Information Extraction
+
+**POST `/cv/extract`**
+
+Send a JSON request containing the CV filename and raw text.
+
+Example request body:
+
+```json
+{
+  "file_name": "sample.pdf",
+  "raw_text": "John Doe. Software Developer. Skills: Python, SQL."
+}
+```
+
+The response contains:
+
+- `file_name` — Original CV filename.
+- `extracted_data` — Structured candidate information.
+
+The extracted information includes contact details, LinkedIn, GitHub, summary, skills, experience, and education.
+
+Existing raw text can be submitted directly without uploading the original CV.
+
+### Endpoint 3 — CV Ranking
+
+**POST `/cv/rank`**
+
+Send a JSON request containing:
+
+- `job_description` — Requirements of the job.
+- `cvs` — A nonempty list of previously extracted CV responses.
+
+Each CV entry must contain `file_name` and `extracted_data`.
+
+The response contains the job description and an ordered `ranked_cvs` list.
+
+Each ranked candidate includes:
+
+| Field | Description |
+|-------|-------------|
+| `rank` | Candidate's ranking position |
+| `file_name` | Original CV filename |
+| `education_score` | Education relevance score |
+| `experience_score` | Experience relevance score |
+| `skills_score` | Skills relevance score |
+| `overall_score` | Overall candidate relevance score |
+
+Scores range from **0 to 10**.
+
+For detailed matching evidence, job requirements, and scoring weights, use:
+
+```text
+POST /cv/rank?include_details=true
+```
+
+**Note:** The ranking system is operational but remains under testing and refinement.
+
+---
+
+## 7. Integrating the API into Your Own Application
+
+The microservice can be integrated into Python, JavaScript, Flutter, Java, .NET, or any other application supporting HTTP requests.
+
+### Processing Workflow
+
+```text
+CV Document
+    |
+    v
+POST /cv/raw
+    |
+    v
+Raw Text
+    |
+    v
+POST /cv/extract
+    |
+    v
+Structured JSON
+    |
+    v
+POST /cv/rank + Job Description
+    |
+    v
+Ranked Candidates
+```
+
+Each stage can be accessed independently.
+
+Applications can start at any stage if they already have the required input.
+
+### Python Integration Example
+
+Create a file named `api_example.py` in the project root using VS Code.
+
+Paste the following code:
 
 ```python
 from pathlib import Path
 
 import httpx
 
-paths = [Path("candidate-a.pdf"), Path("candidate-b.docx")]
-job = "Python is required. SQL is preferred."
+BASE_URL = "http://127.0.0.1:8000"
+
+cv_files = [
+    Path("candidate-a.pdf"),
+    Path("candidate-b.docx")
+]
+
+job_description = """
+Python developer with experience in SQL
+and software development.
+"""
+
 timeout = httpx.Timeout(30, connect=5, read=None)
-with httpx.Client(base_url="http://127.0.0.1:8000", timeout=timeout, trust_env=False) as api:
-    cvs = []
-    for path in paths:
+
+with httpx.Client(
+    base_url=BASE_URL,
+    timeout=timeout,
+    trust_env=False
+) as client:
+
+    extracted_cvs = []
+
+    for path in cv_files:
+
+        # Stage 1: Parse the CV
         with path.open("rb") as file:
-            parsed = api.post("/cv/raw", files={"file": (path.name, file)})
-        parsed.raise_for_status()
+            response = client.post(
+                "/cv/raw",
+                files={"file": (path.name, file)}
+            )
 
-        extracted = api.post("/cv/extract", json=parsed.json())
-        extracted.raise_for_status()
-        cvs.append(extracted.json())
+        response.raise_for_status()
+        raw_data = response.json()
 
-    response = api.post("/cv/rank", json={"job_description": job, "cvs": cvs})
+        # Stage 2: Extract structured information
+        response = client.post(
+            "/cv/extract",
+            json=raw_data
+        )
+
+        response.raise_for_status()
+        extracted_cvs.append(response.json())
+
+    # Stage 3: Rank candidates
+    response = client.post(
+        "/cv/rank",
+        json={
+            "job_description": job_description,
+            "cvs": extracted_cvs
+        }
+    )
+
     response.raise_for_status()
+
     for cv in response.json()["ranked_cvs"]:
-        print(cv["rank"], cv["file_name"], cv["overall_score"])
+        print(
+            cv["rank"],
+            cv["file_name"],
+            cv["overall_score"]
+        )
 ```
 
-For previously extracted CVs, put the saved extraction responses directly in the `cvs` list and send the ranking request. The endpoint accepts `extracted_data` as an object or a JSON string.
+Replace the example filenames and job description with your own.
 
-Each ranked CV includes `rank`, `file_name`, `education_score`, `experience_score`, `skills_score`, and `overall_score`. To get the evidence shown by the tester, send the same request to `/cv/rank?include_details=true`. This adds job-level `weights` and `requirements`, plus `extracted_data`, `matches`, and `required_to_review` for each CV. Evidence points to fields such as `skills[0]`. Review IDs identify requirements with partial or missing evidence among the required items.
-
-## Extract from a text file
-
-To print the structured CV directly from a UTF-8 text file, run the standalone extractor.
+With the microservice running, execute:
 
 ```bat
-.\.venv\Scripts\python.exe -m app.extraction .\cv.txt
+.\.venv\Scripts\python.exe api_example.py
 ```
+
+If only parsing or information extraction is required, stop after the corresponding stage.
+
+If structured candidate JSON is already available, submit it directly to `/cv/rank` without repeating earlier stages.
+
+### Connecting from Another Device
+
+To make the microservice accessible to other devices on a trusted local network, start it using:
+
+```bat
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Other applications can communicate with the service using:
+
+```text
+http://SERVER_IP:8000
+```
+
+Replace `SERVER_IP` with the local IP address of the computer hosting the microservice.
+
+Ensure the firewall permits the intended connections on port 8000.
+
+The current API does not implement authentication. Do not expose it directly to the public internet.
+
+Production deployments should include authentication, HTTPS, and appropriate access controls for candidate information.
+
+Browser-based applications may also require CORS configuration or a backend proxy.
+
+---
+
+## 8. Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Python not recognized | Install a compatible Python version and restart VS Code |
+| Dependency installation fails | Verify that Python is 64-bit and within the expected 3.11–3.13 range; prefer 3.12 |
+| Ollama not recognized | Install Ollama and restart VS Code |
+| AI or OCR models missing | Run `install.py` again |
+| Cannot connect to API | Verify that the Uvicorn server is running |
+| Excel file cannot be saved | Close the workbook and retry |
+| Legacy `.doc` extraction fails | Verify that Antiword is installed |
+| AI processing takes time | Processing speed depends on CPU performance and document complexity |
+
+To stop the microservice, press `Ctrl + C` in its terminal.
+
+---
+
+For project information and development progress, see [README.md](README.md).
